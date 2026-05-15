@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Link Manager</title>
+<style>
+/* ========== Reset & Variables ========== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f0f2f5;
+  --card-bg: #ffffff;
+  --text: #1a1a2e;
+  --text-secondary: #6b7280;
+  --border: #e5e7eb;
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-light: #eef2ff;
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --danger-light: #fef2f2;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 25px rgba(0,0,0,0.12);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --transition: 0.2s ease;
+  --card-width: 300px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+/* ========== Header ========== */
+.header {
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow-sm);
+}
+
+.header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.header-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-title .logo { font-size: 1.5rem; }
+
+.header-spacer { flex: 1; }
+
+/* ========== Controls ========== */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.btn:hover { background: #f9fafb; border-color: #d1d5db; }
+.btn:active { transform: scale(0.97); }
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+.btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+
+.btn-danger { color: var(--danger); }
+.btn-danger:hover { background: var(--danger-light); border-color: var(--danger); }
+
+.btn-icon { padding: 8px; min-width: 36px; justify-content: center; }
+
+.btn-group {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.btn-group .btn {
+  border: none;
+  border-radius: 0;
+  border-right: 1px solid var(--border);
+}
+.btn-group .btn:last-child { border-right: none; }
+.btn-group .btn.active { background: var(--primary-light); color: var(--primary); }
+
+.width-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.width-control input[type="range"] {
+  width: 80px;
+  accent-color: var(--primary);
+}
+
+.sort-select {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  background: var(--card-bg);
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* ========== Main Content ========== */
+.main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* Grid View */
+.links-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--card-width), 1fr));
+  gap: 16px;
+}
+
+/* List View */
+.links-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ========== Card Styles ========== */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  cursor: pointer;
+  transition: all var(--transition);
+  position: relative;
+  display: flex;
+  gap: 14px;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: #d1d5db;
+}
+
+.card.dragging {
+  opacity: 0.5;
+  box-shadow: var(--shadow-lg);
+}
+
+.card.drag-over {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+.card-emoji {
+  font-size: 2rem;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f9fafb;
+  border-radius: var(--radius-sm);
+  user-select: none;
+}
+
+.card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-title:hover { color: var(--primary); }
+
+.card-url {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
+.card-desc {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-priority {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--primary-light);
+  padding: 2px 8px;
+  border-radius: 10px;
+  display: inline-block;
+  margin-top: 6px;
+}
+
+.card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.card:hover .card-actions { opacity: 1; }
+.card-actions.always-visible { opacity: 1; }
+
+.card-actions .btn { padding: 6px; font-size: 0.8rem; min-width: 28px; }
+
+.drag-handle {
+  cursor: grab;
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+  padding: 4px;
+  user-select: none;
+}
+.drag-handle:active { cursor: grabbing; }
+
+/* List view card overrides */
+.links-list .card {
+  flex-direction: row;
+  align-items: center;
+}
+
+.links-list .card-emoji { font-size: 1.5rem; width: 40px; height: 40px; }
+
+.links-list .card-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.links-list .card-title { min-width: 120px; }
+.links-list .card-url { max-width: 300px; }
+.links-list .card-desc { max-width: 300px; margin-top: 0; -webkit-line-clamp: 1; }
+
+/* ========== Empty State ========== */
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-secondary);
+}
+
+.empty-state .empty-emoji { font-size: 4rem; display: block; margin-bottom: 16px; }
+.empty-state h3 { font-size: 1.2rem; margin-bottom: 8px; color: var(--text); }
+.empty-state p { font-size: 0.9rem; margin-bottom: 20px; }
+
+/* ========== Modal ========== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.2s ease;
+}
+
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h3 { font-size: 1.1rem; }
+
+.modal-body { padding: 20px; }
+
+.modal-footer {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+}
+
+/* ========== Form ========== */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-input, .form-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--card-bg);
+  transition: border-color var(--transition);
+}
+
+.form-input:focus, .form-textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.form-textarea { resize: vertical; min-height: 60px; }
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ========== Emoji Picker ========== */
+.emoji-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-height: 160px;
+  overflow-y: auto;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fafafa;
+}
+
+.emoji-option {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.emoji-option:hover { background: #eef2ff; border-color: var(--primary); transform: scale(1.15); }
+.emoji-option.selected { background: var(--primary-light); border-color: var(--primary); }
+
+.emoji-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: #f9fafb;
+  border-radius: var(--radius-sm);
+  margin-top: 8px;
+}
+
+.emoji-preview-icon {
+  font-size: 2rem;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.emoji-preview-text { font-size: 0.8rem; color: var(--text-secondary); }
+
+/* ========== Toast ========== */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toast {
+  padding: 12px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #fff;
+  animation: slideIn 0.3s ease;
+  box-shadow: var(--shadow-md);
+  max-width: 360px;
+}
+
+.toast-success { background: #059669; }
+.toast-error { background: var(--danger); }
+.toast-info { background: var(--primary); }
+
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* ========== Footer ========== */
+.footer {
+  text-align: center;
+  padding: 24px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.footer .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  display: inline-block;
+}
+
+.footer .status-dot.unsaved { background: #f59e0b; }
+
+/* ========== Mobile ========== */
+@media (max-width: 768px) {
+  .header { padding: 12px 16px; }
+  .header-inner { gap: 10px; }
+  .header-spacer { display: none; }
+  .controls { width: 100%; }
+  .controls .btn { font-size: 0.8rem; padding: 6px 12px; }
+  .sort-select { font-size: 0.8rem; padding: 6px 10px; }
+
+  .main { padding: 16px; }
+  .links-grid { grid-template-columns: repeat(auto-fill, minmax(min(var(--card-width), 100%), 1fr)); gap: 10px; }
+
+  .links-list .card { flex-wrap: wrap; }
+  .links-list .card-body { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .links-list .card-url, .links-list .card-desc { max-width: 100%; }
+
+  .card-actions { opacity: 1; }
+  .card-actions .btn { padding: 8px; }
+
+  .modal { max-width: 100%; max-height: 100vh; border-radius: 0; }
+  .modal-overlay { padding: 0; align-items: flex-end; }
+
+  .form-row { grid-template-columns: 1fr; }
+  .width-control { width: 100%; }
+  .width-control input[type="range"] { flex: 1; }
+
+  .toast-container { left: 16px; right: 16px; bottom: 16px; }
+  .toast { max-width: 100%; }
+}
+
+@media (max-width: 480px) {
+  .links-grid { grid-template-columns: 1fr; }
+  .btn-group .btn { padding: 6px 10px; font-size: 0.75rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ========== Header ========== -->
+<header class="header">
+  <div class="header-inner">
+    <div class="header-title">
+      <span class="logo">🔖</span> Link Manager
+    </div>
+    <div class="header-spacer"></div>
+    <div class="controls">
+      <div class="btn-group" id="viewToggle">
+        <button class="btn active" data-view="grid" title="网格视图">▦ 网格</button>
+        <button class="btn" data-view="list" title="列表视图">☰ 列表</button>
+      </div>
+      <div class="width-control">
+        <span>宽</span>
+        <input type="range" id="widthSlider" min="200" max="500" value="300" step="20">
+        <span id="widthLabel">300px</span>
+      </div>
+      <select class="sort-select" id="sortSelect">
+        <option value="priority">按优先级</option>
+        <option value="title">按标题</option>
+        <option value="createdAt">按创建时间</option>
+      </select>
+      <button class="btn btn-primary" id="btnAdd">＋ 添加链接</button>
+    </div>
+  </div>
+</header>
+
+<!-- ========== Main Content ========== -->
+<main class="main" id="mainContent">
+  <div class="links-grid" id="linksContainer"></div>
+</main>
+
+<!-- ========== Footer ========== -->
+<footer class="footer">
+  <span><span class="status-dot" id="saveIndicator"></span> <span id="saveStatus">已加载</span></span>
+  <span id="linkCount">0 个链接</span>
+  <button class="btn" id="btnSave" title="保存到 links.json">💾 保存 JSON</button>
+  <button class="btn" id="btnImport" title="从 JSON 文件导入">📂 导入</button>
+</footer>
+
+<!-- ========== Add/Edit Modal ========== -->
+<div class="modal-overlay" id="modalOverlay" style="display:none">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">添加链接</h3>
+      <button class="btn btn-icon" id="btnCloseModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">网址 URL</label>
+        <input type="url" class="form-input" id="inputUrl" placeholder="https://example.com" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label">标题</label>
+        <input type="text" class="form-input" id="inputTitle" placeholder="链接标题" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label">图标 Emoji</label>
+        <div class="emoji-picker" id="emojiPicker"></div>
+        <input type="text" class="form-input" id="inputEmoji" placeholder="或直接输入 emoji" style="margin-top:8px" maxlength="4">
+      </div>
+      <div class="form-group">
+        <label class="form-label">说明</label>
+        <textarea class="form-textarea" id="inputDesc" placeholder="简单描述这个链接…" rows="2"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">优先级（数字越小越靠前）</label>
+          <input type="number" class="form-input" id="inputPriority" value="1" min="1" max="999">
+        </div>
+      </div>
+      <div class="emoji-preview" id="cardPreview">
+        <div class="emoji-preview-icon" id="previewEmoji">🔗</div>
+        <div>
+          <div style="font-weight:600;font-size:0.9rem" id="previewTitle">新链接</div>
+          <div style="font-size:0.75rem;color:#6b7280" id="previewUrl">https://...</div>
+          <div style="font-size:0.75rem;color:#6b7280;margin-top:2px" id="previewDesc">说明文字…</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" id="btnDeleteLink" style="display:none;margin-right:auto">🗑 删除</button>
+      <button class="btn" id="btnCancelModal">取消</button>
+      <button class="btn btn-primary" id="btnSaveLink">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== Toast Container ========== -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Hidden file input for import -->
+<input type="file" id="fileInput" accept=".json" style="display:none">
+
+<script>
+// ============================================================
+// State
+// ============================================================
+let links = [];
+let settings = {
+  viewMode: 'grid',
+  cardWidth: 300,
+  sortBy: 'priority'
+};
+let editingId = null;
+let isDirty = false;
+let fileHandle = null; // File System Access API handle
+
+// ============================================================
+// DOM refs
+// ============================================================
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+const mainContent = $('#mainContent');
+const linksContainer = $('#linksContainer');
+const modalOverlay = $('#modalOverlay');
+const saveIndicator = $('#saveIndicator');
+const saveStatus = $('#saveStatus');
+const linkCount = $('#linkCount');
+const toastContainer = $('#toastContainer');
+const fileInput = $('#fileInput');
+
+// ============================================================
+// Emoji data
+// ============================================================
+const EMOJI_LIST = [
+  '😀','😃','😄','😁','😊','🥰','😍','🤩','😘','😎','🤗','🤔','😌','😏','🙂','😇',
+  '👍','👎','👏','🙌','💪','🤝','✌️','👋','🤞','👆','👇','👈','👉','🖐️','🤙',
+  '📝','📌','📎','🔗','📁','📂','📋','📊','📈','📉','📅','📆','📚','📖','📔','🔖',
+  '💻','🖥️','📱','🖨️','💡','🔌','🎮','⌨️','🖱️','💾','📀','🖊️','🔊','🎧','📷','🎥',
+  '🌟','⭐','🔥','💧','🌈','☀️','🌙','⚡','❄️','🌊','🌸','🌿','🍀','🌍','🏔️','🌋',
+  '🚀','✈️','🚗','🚲','🚢','🚁','🏎️','🛵','🚄','🚌','🚕','🛴','🚶','🏃','🎯','🧭',
+  '❤️','💚','💙','💜','🧡','💛','🤍','🖤','💖','💗','💓','🤎','💕','💞','❣️','🩷',
+  '✅','❌','⚠️','🔴','🟠','🟡','🟢','🔵','🟣','⚪','⚫','🟤','➕','➖','✖️','➗',
+  '⏰','⌚','🔔','🔕','⏳','⌛','🕐','⏱️','⏲️','🕒','📡','🔍','🔎','💬','💭','🗯️',
+  '🎨','🎵','🎬','🏆','💎','🔑','🛡️','🧲','💰','📦','🧩','🎪','🎯','🏷️','📌','✂️',
+  '☕','🍵','🧃','🍔','🍕','🍣','🍜','🎂','🍩','🍿','🍺','🥤','🧋','🍷','🥂','🧊',
+  '🐱','🐶','🦊','🐼','🐨','🐙','🦄','🐝','🦋','🐳','🦉','🐧','🐤','🐸','🦁','🐯'
+];
+
+// ============================================================
+// Toast
+// ============================================================
+function toast(msg, type = 'info') {
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  toastContainer.appendChild(el);
+  setTimeout(() => { el.remove(); }, 2500);
+}
+
+// ============================================================
+// Persistence
+// ============================================================
+function markDirty() {
+  isDirty = true;
+  saveIndicator.className = 'status-dot unsaved';
+  saveStatus.textContent = '有未保存的更改';
+  saveToLocalStorage();
+}
+
+function markSaved() {
+  isDirty = false;
+  saveIndicator.className = 'status-dot';
+  saveStatus.textContent = '已保存';
+}
+
+async function loadLinks() {
+  // 1. Try fetch from links.json
+  try {
+    const resp = await fetch('links.json', { cache: 'no-cache' });
+    if (resp.ok) {
+      const data = await resp.json();
+      links = data.links || [];
+      settings = { ...settings, ...(data.settings || {}) };
+      markSaved();
+      return;
+    }
+  } catch (e) { /* fetch failed, try next */ }
+
+  // 2. Try localStorage
+  const cached = localStorage.getItem('link-manager-data');
+  if (cached) {
+    try {
+      const data = JSON.parse(cached);
+      links = data.links || [];
+      settings = { ...settings, ...(data.settings || {}) };
+      saveIndicator.className = 'status-dot unsaved';
+      saveStatus.textContent = '从本地缓存加载';
+      isDirty = true;
+      return;
+    } catch (e) { /* parse failed */ }
+  }
+
+  // 3. Empty start
+  links = [];
+  markSaved();
+}
+
+function saveToLocalStorage() {
+  try {
+    localStorage.setItem('link-manager-data', JSON.stringify({ links, settings }));
+  } catch (e) { /* quota exceeded */ }
+}
+
+async function saveToFile() {
+  const data = JSON.stringify({ links, settings }, null, 2);
+
+  // Try File System Access API
+  if (fileHandle) {
+    try {
+      const writable = await fileHandle.createWritable();
+      await writable.write(data);
+      await writable.close();
+      markSaved();
+      toast('已保存到 links.json', 'success');
+      return;
+    } catch (e) { fileHandle = null; /* fall through */ }
+  }
+
+  // Fallback: download
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'links.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  markSaved();
+  toast('JSON 文件已下载，请放回 HTML 同目录', 'success');
+}
+
+async function importFile() {
+  fileInput.click();
+}
+
+fileInput.addEventListener('change', async () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    links = data.links || [];
+    settings = { ...settings, ...(data.settings || {}) };
+    applySettings();
+    render();
+    markDirty();
+    toast(`导入了 ${links.length} 个链接`, 'success');
+  } catch (e) {
+    toast('JSON 文件格式错误', 'error');
+  }
+  fileInput.value = '';
+});
+
+// ============================================================
+// Sort & Filter
+// ============================================================
+function getSortedLinks() {
+  const sorted = [...links];
+  switch (settings.sortBy) {
+    case 'title':
+      sorted.sort((a, b) => a.title.localeCompare(b.title, 'zh-CN'));
+      break;
+    case 'createdAt':
+      sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      break;
+    case 'priority':
+    default:
+      sorted.sort((a, b) => a.priority - b.priority || new Date(b.createdAt) - new Date(a.createdAt));
+      break;
+  }
+  return sorted;
+}
+
+// ============================================================
+// Render
+// ============================================================
+function render() {
+  const sorted = getSortedLinks();
+
+  // Update container class
+  linksContainer.className = settings.viewMode === 'grid' ? 'links-grid' : 'links-list';
+
+  // Update count
+  linkCount.textContent = `${links.length} 个链接`;
+
+  if (sorted.length === 0) {
+    linksContainer.innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1">
+        <span class="empty-emoji">📭</span>
+        <h3>还没有链接</h3>
+        <p>点击「添加链接」按钮开始收藏网页</p>
+        <button class="btn btn-primary" onclick="openModal()">＋ 添加第一个链接</button>
+      </div>`;
+    return;
+  }
+
+  linksContainer.innerHTML = sorted.map((link, idx) => `
+    <div class="card" draggable="true" data-id="${link.id}" data-index="${idx}"
+         ondragstart="handleDragStart(event)" ondragover="handleDragOver(event)"
+         ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)" ondragend="handleDragEnd(event)">
+      <div class="drag-handle" title="拖拽排序">⠿</div>
+      <div class="card-emoji">${link.emoji || '🔗'}</div>
+      <div class="card-body">
+        <a href="${escapeHtml(link.url)}" class="card-title" target="_blank" rel="noopener"
+           onclick="event.stopPropagation()" title="${escapeHtml(link.url)}">${escapeHtml(link.title) || '未命名链接'}</a>
+        <div class="card-url">${escapeHtml(link.url)}</div>
+        ${link.description ? `<div class="card-desc">${escapeHtml(link.description)}</div>` : ''}
+        <span class="card-priority">P${link.priority || 1}</span>
+      </div>
+      <div class="card-actions ${window.innerWidth <= 768 ? 'always-visible' : ''}">
+        <button class="btn btn-icon" onclick="event.stopPropagation();openModal('${link.id}')" title="编辑">✎</button>
+        <button class="btn btn-icon" onclick="event.stopPropagation();openUrl('${escapeHtml(link.url)}')" title="打开">↗</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ============================================================
+// Drag & Drop
+// ============================================================
+let dragSrcIndex = null;
+
+function handleDragStart(e) {
+  dragSrcIndex = parseInt(e.target.closest('.card').dataset.index);
+  e.target.closest('.card').classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', '');
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.target.closest('.card')?.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+  e.target.closest('.card')?.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  e.target.closest('.card')?.classList.remove('drag-over');
+  const targetIndex = parseInt(e.target.closest('.card')?.dataset.index);
+  if (targetIndex == null || dragSrcIndex == null || targetIndex === dragSrcIndex) return;
+
+  const sorted = getSortedLinks();
+  const [moved] = sorted.splice(dragSrcIndex, 1);
+  sorted.splice(targetIndex, 0, moved);
+
+  // Re-assign priorities based on new order
+  links = sorted.map((link, i) => ({ ...link, priority: i + 1 }));
+  dragSrcIndex = null;
+  markDirty();
+  render();
+}
+
+function handleDragEnd(e) {
+  e.target.closest('.card')?.classList.remove('dragging');
+  $$('.card.drag-over').forEach(c => c.classList.remove('drag-over'));
+  dragSrcIndex = null;
+}
+
+// ============================================================
+// Modal
+// ============================================================
+const EMOJI_CATEGORIES = [
+  { label: '表情', emojis: ['😀','😃','😄','😁','😊','🥰','😍','🤩','😘','😎','🤗','🤔','😌','😏','🙂','😇'] },
+  { label: '手势', emojis: ['👍','👎','👏','🙌','💪','🤝','✌️','👋','🤞','👆','👇','👈','👉','🖐️','🤙','🙏'] },
+  { label: '办公', emojis: ['📝','📌','📎','🔗','📁','📂','📋','📊','📈','📉','📅','📆','📚','📖','📔','🔖'] },
+  { label: '科技', emojis: ['💻','🖥️','📱','🖨️','💡','🔌','🎮','⌨️','🖱️','💾','📀','🖊️','🔊','🎧','📷','🎥'] },
+  { label: '自然', emojis: ['🌟','⭐','🔥','💧','🌈','☀️','🌙','⚡','❄️','🌊','🌸','🌿','🍀','🌍','🏔️','🌋'] },
+  { label: '出行', emojis: ['🚀','✈️','🚗','🚲','🚢','🚁','🏎️','🛵','🚄','🚌','🚕','🛴','🚶','🏃','🎯','🧭'] },
+  { label: '爱心', emojis: ['❤️','💚','💙','💜','🧡','💛','🤍','🖤','💖','💗','💓','🤎','💕','💞','❣️','🩷'] },
+  { label: '符号', emojis: ['✅','❌','⚠️','🔴','🟠','🟡','🟢','🔵','🟣','⚪','⚫','🟤','➕','➖','✖️','➗','💯'] },
+  { label: '时间', emojis: ['⏰','⌚','🔔','🔕','⏳','⌛','🕐','⏱️','⏲️','🕒','📡','🔍','🔎','💬','💭','🗯️'] },
+  { label: '其他', emojis: ['🎨','🎵','🎬','🏆','💎','🔑','🛡️','🧲','💰','📦','🧩','🎪','🎯','🏷️','✂️','🧿'] },
+  { label: '饮食', emojis: ['☕','🍵','🧃','🍔','🍕','🍣','🍜','🎂','🍩','🍿','🍺','🥤','🧋','🍷','🥂','🧊'] },
+  { label: '动物', emojis: ['🐱','🐶','🦊','🐼','🐨','🐙','🦄','🐝','🦋','🐳','🦉','🐧','🐤','🐸','🦁','🐯'] },
+];
+
+function buildEmojiPicker(selectedEmoji) {
+  const container = $('#emojiPicker');
+  container.innerHTML = '';
+
+  // Quick buttons row
+  const quickRow = document.createElement('div');
+  quickRow.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #e5e7eb';
+  const quickEmojis = ['🔗','📝','📚','💻','⭐','🔥','📌','🎯','📱','🚀','💡','📅'];
+  quickEmojis.forEach(emoji => {
+    const btn = document.createElement('span');
+    btn.className = 'emoji-option' + (emoji === selectedEmoji ? ' selected' : '');
+    btn.textContent = emoji;
+    btn.title = '常用';
+    btn.onclick = () => selectEmoji(emoji);
+    quickRow.appendChild(btn);
+  });
+  container.appendChild(quickRow);
+
+  // Category rows
+  EMOJI_CATEGORIES.forEach(cat => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;margin-bottom:2px';
+    cat.emojis.forEach(emoji => {
+      const span = document.createElement('span');
+      span.className = 'emoji-option' + (emoji === selectedEmoji ? ' selected' : '');
+      span.textContent = emoji;
+      span.title = cat.label;
+      span.onclick = () => selectEmoji(emoji);
+      row.appendChild(span);
+    });
+    container.appendChild(row);
+  });
+}
+
+function selectEmoji(emoji) {
+  $('#inputEmoji').value = emoji;
+  // Update visual selection in picker
+  $$('.emoji-option').forEach(el => el.classList.remove('selected'));
+  $$('.emoji-option').forEach(el => { if (el.textContent === emoji) el.classList.add('selected'); });
+  updatePreview();
+}
+
+function updatePreview() {
+  $('#previewEmoji').textContent = $('#inputEmoji').value || '🔗';
+  $('#previewTitle').textContent = $('#inputTitle').value || '新链接';
+  $('#previewUrl').textContent = $('#inputUrl').value || 'https://...';
+  $('#previewDesc').textContent = $('#inputDesc').value || '说明文字…';
+}
+
+function openModal(id = null) {
+  editingId = id;
+  const isEdit = id != null;
+
+  $('#modalTitle').textContent = isEdit ? '编辑链接' : '添加链接';
+  $('#btnDeleteLink').style.display = isEdit ? '' : 'none';
+  $('#btnSaveLink').textContent = isEdit ? '更新' : '保存';
+
+  if (isEdit) {
+    const link = links.find(l => l.id === id);
+    if (!link) return;
+    $('#inputUrl').value = link.url;
+    $('#inputTitle').value = link.title;
+    $('#inputEmoji').value = link.emoji || '';
+    $('#inputDesc').value = link.description || '';
+    $('#inputPriority').value = link.priority || 1;
+  } else {
+    $('#inputUrl').value = '';
+    $('#inputTitle').value = '';
+    $('#inputEmoji').value = '';
+    $('#inputDesc').value = '';
+    $('#inputPriority').value = links.length > 0 ? Math.max(...links.map(l => l.priority || 0)) + 1 : 1;
+  }
+
+  buildEmojiPicker(isEdit ? (links.find(l => l.id === id)?.emoji || '') : '');
+  updatePreview();
+  modalOverlay.style.display = 'flex';
+  setTimeout(() => $('#inputUrl').focus(), 100);
+}
+
+function closeModal() {
+  modalOverlay.style.display = 'none';
+  editingId = null;
+}
+
+function saveLink() {
+  const url = $('#inputUrl').value.trim();
+  const title = $('#inputTitle').value.trim();
+  const emoji = $('#inputEmoji').value.trim();
+  const description = $('#inputDesc').value.trim();
+  const priority = parseInt($('#inputPriority').value) || 1;
+
+  if (!url) { toast('请输入网址', 'error'); return; }
+
+  // Basic URL validation: prepend https:// if no protocol
+  let finalUrl = url;
+  if (!/^https?:\/\//i.test(finalUrl)) {
+    finalUrl = 'https://' + finalUrl;
+  }
+
+  if (editingId) {
+    const idx = links.findIndex(l => l.id === editingId);
+    if (idx === -1) return;
+    links[idx] = { ...links[idx], url: finalUrl, title: title || finalUrl, emoji, description, priority };
+  } else {
+    links.push({
+      id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2),
+      url: finalUrl,
+      title: title || finalUrl,
+      emoji,
+      description,
+      priority,
+      createdAt: new Date().toISOString()
+    });
+  }
+
+  markDirty();
+  render();
+  closeModal();
+  toast(editingId ? '链接已更新' : '链接已添加', 'success');
+}
+
+function deleteLink() {
+  if (!editingId) return;
+  if (!confirm('确定要删除这个链接吗？')) return;
+  links = links.filter(l => l.id !== editingId);
+  markDirty();
+  render();
+  closeModal();
+  toast('链接已删除', 'info');
+}
+
+function openUrl(url) {
+  window.open(url, '_blank', 'noopener');
+}
+
+// ============================================================
+// Settings
+// ============================================================
+function applySettings() {
+  // View mode
+  $$('#viewToggle .btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.view === settings.viewMode);
+  });
+  // Width
+  $('#widthSlider').value = settings.cardWidth;
+  $('#widthLabel').textContent = settings.cardWidth + 'px';
+  document.documentElement.style.setProperty('--card-width', settings.cardWidth + 'px');
+  // Sort
+  $('#sortSelect').value = settings.sortBy;
+}
+
+// ============================================================
+// Event Listeners
+// ============================================================
+// View toggle
+$('#viewToggle').addEventListener('click', (e) => {
+  const btn = e.target.closest('.btn');
+  if (!btn) return;
+  settings.viewMode = btn.dataset.view;
+  applySettings();
+  render();
+  markDirty();
+});
+
+// Width slider
+$('#widthSlider').addEventListener('input', () => {
+  settings.cardWidth = parseInt($('#widthSlider').value);
+  $('#widthLabel').textContent = settings.cardWidth + 'px';
+  document.documentElement.style.setProperty('--card-width', settings.cardWidth + 'px');
+  markDirty();
+});
+
+// Sort select
+$('#sortSelect').addEventListener('change', () => {
+  settings.sortBy = $('#sortSelect').value;
+  render();
+  markDirty();
+});
+
+// Modal open/close
+$('#btnAdd').addEventListener('click', () => openModal());
+$('#btnCloseModal').addEventListener('click', closeModal);
+$('#btnCancelModal').addEventListener('click', closeModal);
+modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
+
+// Modal save/delete
+$('#btnSaveLink').addEventListener('click', saveLink);
+$('#btnDeleteLink').addEventListener('click', deleteLink);
+
+// Live preview
+['#inputUrl','#inputTitle','#inputDesc','#inputEmoji'].forEach(sel => {
+  $(sel).addEventListener('input', updatePreview);
+});
+
+// Emoji input sync
+$('#inputEmoji').addEventListener('input', () => {
+  const val = $('#inputEmoji').value;
+  $$('.emoji-option').forEach(el => el.classList.remove('selected'));
+  if (val) {
+    $$('.emoji-option').forEach(el => { if (el.textContent === val) el.classList.add('selected'); });
+  }
+  updatePreview();
+});
+
+// Keyboard shortcut
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && modalOverlay.style.display !== 'none') {
+    closeModal();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    saveToFile();
+  }
+});
+
+// Save / Import buttons
+$('#btnSave').addEventListener('click', saveToFile);
+$('#btnImport').addEventListener('click', importFile);
+
+// ============================================================
+// Init
+// ============================================================
+async function init() {
+  await loadLinks();
+  applySettings();
+  render();
+
+  // Try to get File System Access API handle for direct save
+  if ('showSaveFilePicker' in window) {
+    // We'll attempt direct save on first user action
+    saveStatus.title = '支持直接保存 (Chrome/Edge)';
+  }
+}
+
+init();
+</script>
+
+</body>
+</html>
